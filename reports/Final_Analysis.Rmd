@@ -1,0 +1,321 @@
+---
+title: "GIQ_Final_Analysis_Report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+#load packages
+library(readr)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(flextable)
+library(forcats)
+library(jtools)
+library(huxtable)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#load in data
+data_full <- read_csv("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/data/processed/full_data_subset2_2015_2019.csv")
+```
+
+```{r include=FALSE}
+#arrange by number of requests, fix some agency names, subset to top 25 agencies
+data_full$agency_name[data_full$agency_name == "Canadian Security Establishment"] <- "Canadian Security Establishment Canada"
+data_full$agency_name[data_full$agency_name == "Indigenous Services Canada"] <- "INAC_CIRNAC_ISC"
+data_full$agency_name[data_full$agency_name == "Indigenous and Northern Affairs Canada"] <- "INAC_CIRNAC_ISC"
+data_full$agency_name[data_full$agency_name == "Crown-Indigenous Relations and Northern Affairs Canada"] <- "INAC_CIRNAC_ISC"
+
+total_requests <- aggregate(data_full$total_for_rp, by = list(data_full$agency_name), FUN = sum)
+total_requests
+
+total_requests %>%
+  arrange(desc(x)) %>%
+  top_n(25)
+
+top25agencies <- data_full %>%
+  filter(agency_name == "Immigration Refugees and Citizenship Canada" |
+         agency_name == "Canada Border Services Agency" |
+         agency_name == "Royal Canadian Mounted Police"|
+         agency_name == "Canada Revenue Agency"|
+         agency_name == "National Defence"|
+         agency_name == "Health Canada"|
+         agency_name == "Employment and Social Development Canada"|
+         agency_name == "Environment and Climate Change Canada"|
+         agency_name == "Global Affairs Canada"|
+         agency_name == "Innovation Science and Economic Development Canada"|
+         agency_name == "Public Services and Procurement Canada"|
+         agency_name == "Library and Archives of Canada"|
+         agency_name == "Transport Canada"|
+         agency_name == "Department of Finance Canada"|
+         agency_name == "Privy Council Office"|
+         agency_name == "Canadian Security Intelligence Service"|
+         agency_name == "Department of Justice Canada"|
+         agency_name == "INAC_CIRNAC_ISC"|
+         agency_name == "Correctional Service of Canada"|
+         agency_name == "Canadian Heritage"|
+         agency_name == "Natural Resources Canada"|
+         agency_name == "Treasury Board of Canada Secretariat"|
+         agency_name == "Fisheries and Oceans Canada"|
+         agency_name == "Public Safety Canada"|
+         agency_name == "Canadian Food Inspection Agency")
+
+top25agencies <- top25agencies %>%
+  group_by(agency_name, fiscal_year) %>%
+  summarise_all(funs(sum)) %>%
+  ungroup()
+```
+
+```{r}
+unique(data_full$agency_name)
+```
+
+
+```{r}
+#calculate total requests accounted for by top 25 agencies
+v1 <- data_full %>%
+  summarize(sum(total_for_rp))
+
+v2 <- top25agencies %>%
+  summarize(sum(total_for_rp))
+
+#calculate total share of requests received accounted for by top25 agencies
+v2/v1*100
+```
+
+```{r}
+#aggregate values across years
+top25ag <- ddply(top25agencies, "agency_name", numcolwise(sum))
+```
+
+```{r}
+top25ag <- top25ag %>%
+  mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
+  mutate(total_share = total_for_rp/sum(total_for_rp)) %>%
+  mutate(pal = ifelse(carry_over > .4 | total_share > .03, "colour1", "colour2"))
+  
+quantile(top25ag$carry_over)
+quantile(top25ag$total_share)
+
+top25ag %>%
+  ggplot(aes(x = carry_over, total_share, label = agency_name, colour = pal)) +
+  geom_point() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_log10(labels = scales::percent, breaks = c(0.01, 0.05, 0.1, 0.6)) +
+  geom_text_repel(data=subset(top25ag, carry_over > .4 | total_share > .03),
+                  aes(label = agency_name), size = 2.5) +
+  theme(legend.position = "") +
+  labs(x = "carry over rate",
+       y = "total share of requests (log scale)",
+       title = "Carry over rate by total share of requests",
+       subtitle = "Top 25 agencies, 2015-2019") +
+  theme_classic() +
+  #theme(panel.grid = element_blank()) +
+  theme(legend.position = "none") +
+  scale_color_grey(start = 0, end = 0.8) +
+  annotate("rect", xmin = .11, xmax = .34, ymin = 0.003, ymax = 0.035, alpha = .1) +
+  annotate("text", x = .17, y = .03, label = "Remaining 17 agencies",
+           size = 2.5, fontface = "italic") +
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/carry_by_total.pdf", width = 8, height = 5)
+
+```
+
+```{r}
+#plot inefficiency and abandonment together
+top25totalmelted <- top25agencies %>%
+  mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
+  mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
+  select(agency_name, carry_over, abandonment, fiscal_year) %>%
+  reshape2::melt(id = c("agency_name", "fiscal_year"))
+top25totalmelted
+
+top25totalmelted$agency_name[top25totalmelted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
+
+top25totalmelted %>%
+  ggplot(aes(x = value, y = reorder(agency_name, +value))) +
+  geom_line() +
+  stat_summary(fun.x = "mean", geom = "point", size = 3) +
+  scale_x_continuous(labels = scales::percent) +
+  facet_wrap(~variable, scales = "free_x") +
+  theme_minimal() +
+  labs(x = "", 
+       y = "",
+       title = "Carry Over and Abandonment",
+       subtitle = "Top 25 agencies, 2015-2019") +
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+
+ggplot(data = top25totalmelted, aes(x = value, y = reorder(agency_name, +value), label = fiscal_year)) +
+  geom_line(alpha = 0.5, color = "grey") +
+  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2017-2018"), color = "grey", alpha = 0.8, size = 1) +
+  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2016-2017"), color = "grey", alpha = 0.8, size = 1) +
+  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2015-2016"), color = "grey", alpha = 0.8, size = 1) +
+  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2018-2019"), color = "black", alpha = 0.8, size = 2) +
+  scale_x_continuous(labels = scales::percent) +
+  facet_wrap(~variable, scales = "free_x") +
+  theme_minimal() +
+  labs(x = "", 
+       y = "",
+       title = "Carry Over and Abandonment",
+       subtitle = "Top 25 agencies, 2015-2018 (  ) 2018-2019 (  )") 
+  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+  
+```
+
+
+
+```{r, fig.width=12, fig.height=8}
+#calculate rates of exemption
+top25ag <- top25ag %>%
+  mutate(s13_rate = s13exemp/closed_in_rp) %>%
+  mutate(s15_rate = s15exemp/closed_in_rp) %>%
+  mutate(s16_rate = s16exemp/closed_in_rp) %>%
+  mutate(s20_rate = s20exemp/closed_in_rp)
+
+#calculate total number of requests wherein particular exemptions were applied
+#s13
+v1 <- top25ag %>%
+  summarize(sum(closed_in_rp))
+v2 <- top25ag %>%
+  summarize(sum(s13exemp))
+
+#s15
+v3 <- top25ag %>%
+  summarize(sum(closed_in_rp))
+v4 <- top25ag %>%
+  summarize(sum(s15exemp))
+
+#s16
+v5 <- top25ag %>%
+  summarize(sum(closed_in_rp))
+v6 <- top25ag %>%
+  summarize(sum(s16exemp))
+
+#s20
+v7 <- top25ag %>%
+  summarize(sum(closed_in_rp))
+v8 <- top25ag %>%
+  summarize(sum(s20exemp))
+
+total_exempt_rates <- data.frame(s13 = v2/v1*100,
+                             s15 = v4/v3*100,
+                             s13and15 = (v2 + v4)/v1*100,
+                             s16 = v6/v5*100,
+                             s20 = v8/v7*100)
+total_exempt_rates
+
+top25melted <- top25ag %>%
+  mutate(s13and15 = s13exemp + s15exemp) %>%
+  mutate(s13and15_rate = s13and15/closed_in_rp) %>%
+  reshape2::melt(id = c("agency_name")) %>%
+  filter(variable == "s13and15_rate"|
+         variable == "s16_rate"|
+         variable == "s20_rate")
+top25melted
+
+top25melted$agency_name[top25melted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
+
+top25melted %>%
+  mutate(pal = ifelse(value >= 0 & value <.25, "<25%",
+                            ifelse(value > .25 & value <= .5, "25%-50%", ">50%"))) %>%
+  ggplot(aes(x = as.numeric(value), y = agency_name, shape = factor(pal, levels = c("<25%", "25%-50%", ">50%")), color = factor(pal, levels = c("<25%", "25%-50%", ">50%")))) +
+  geom_point(size = 4, alpha = 0.8) +
+  facet_wrap(~variable) +
+  theme_minimal() +
+  theme(legend.position = "top", legend.title = element_blank()) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_color_viridis_d() +
+  #scale_color_grey(start = 0.75, end = 0.0) +
+  labs(x = "", 
+       y = "",
+       title = "Exemptions",
+       subtitle = "Top 25 agencies, 2015-2019") +
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/exceptions.pdf", width = 10, height = 6)
+```
+
+
+```{r}
+top25sector <- top25ag %>%
+  mutate(media = media/received_in_rp) %>%
+  mutate(academia = academia/received_in_rp) %>%
+  mutate(business = business/received_in_rp) %>%
+  mutate(organization = organization/received_in_rp) %>%
+  mutate(public = public/received_in_rp) %>%
+  mutate(decline = declined_to_identify/received_in_rp) %>%
+  #mutate(total = media_prop + academia_prop + business_prop + organization_prop + public_prop + decline_prop) %>%
+  select(agency_name, media, academia, business, organization, public, decline)
+top25sector
+
+top25sector$agency_name[top25sector$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
+
+top25sector %>%
+  reshape2::melt(by = c("agency_name")) %>%
+  ggplot(aes(y = value, x = agency_name, fill = variable)) +
+  geom_col(position = "stack") +
+  theme_classic() +
+  theme(legend.position = "top", legend.title = element_blank()) +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "",
+       y = "",
+       title = "Total share of requests by sector",
+       subtitle = "Top 25 agencies, 2015-2019") +
+    ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/sectors.pdf", width = 8, height = 5)
+  
+```
+
+
+
+```{r, fig.width=12, fig.height=8}
+#regression models
+syst_eff_data <- tibble(agency = top25ag$agency_name,
+                        media = top25ag$media, 
+                        academia = top25ag$academia,
+                        organization = top25ag$organization,
+                        public = top25ag$public,
+                        business = top25ag$business,
+                        declined = top25ag$declined_to_identify,
+                        abandoned_rate = top25ag$rate_aband,
+                        people_years = top25ag$people_years,
+                        total_costs = top25ag$total_costs,
+                        s13s15_rate = top25ag$s13_rate + top25ag$s15_rate,
+                        s16_rate = top25ag$s16_rate,
+                        s20_rate = top25ag$s20_rate,
+                        syst_eff = top25ag$carried_over_to_rp/top25ag$closed_in_rp)
+
+fit <- lm(syst_eff ~ abandoned_rate + media + academia + organization + public + business + declined + s13s15_rate + s16_rate + s20_rate + people_years + total_costs, data = syst_eff_data)
+
+summary(fit)
+
+summ(fit, confint = TRUE, digits = 2)
+summ(fit)
+
+top25ag %>%
+  ggplot(aes(x = carried_over_to_rp/closed_in_rp, y = rate_aband, label = agency_name)) +
+  geom_point()+
+  geom_smooth(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  geom_text_repel()
+
+top25ag %>%
+  ggplot(aes(x = carried_over_to_rp/closed_in_rp, y = s15_rate, label = agency_name)) +
+  geom_point()+
+  geom_smooth(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  geom_text_repel()
+
+top25ag %>%
+  ggplot(aes(x = carried_over_to_rp/closed_in_rp, y = total_costs, label = agency_name)) +
+  geom_point()+
+  geom_smooth(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  geom_text_repel()
+```
+
+
