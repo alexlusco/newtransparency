@@ -16,8 +16,6 @@ library(ggplot2)
 library(ggrepel)
 library(flextable)
 library(forcats)
-library(jtools)
-library(huxtable)
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -121,8 +119,8 @@ top25ag %>%
   scale_color_grey(start = 0, end = 0.8) +
   annotate("rect", xmin = .11, xmax = .34, ymin = 0.003, ymax = 0.035, alpha = .1) +
   annotate("text", x = .17, y = .03, label = "Remaining 17 agencies",
-           size = 2.5, fontface = "italic") +
-  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/carry_by_total.pdf", width = 8, height = 5)
+           size = 2.5, fontface = "italic") 
+  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/carry_by_total.pdf", width = 8, height = 5)
 
 ```
 
@@ -234,8 +232,8 @@ top25melted %>%
   labs(x = "", 
        y = "",
        title = "Exemptions",
-       subtitle = "Top 25 agencies, 2015-2019") +
-  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/exceptions.pdf", width = 10, height = 6)
+       subtitle = "Top 25 agencies, 2015-2019") 
+  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/exceptions.pdf", width = 10, height = 6)
 ```
 
 
@@ -265,8 +263,8 @@ top25sector %>%
   labs(x = "",
        y = "",
        title = "Total share of requests by sector",
-       subtitle = "Top 25 agencies, 2015-2019") +
-    ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/sectors.pdf", width = 8, height = 5)
+       subtitle = "Top 25 agencies, 2015-2019") 
+    #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/sectors.pdf", width = 8, height = 5)
   
 ```
 
