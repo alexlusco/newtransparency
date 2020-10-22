@@ -20,7 +20,7 @@ library(forcats)
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 #load in data
-data_full <- read_csv("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/data/processed/full_data_subset2_2015_2019.csv")
+data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
 ```
 
 ```{r include=FALSE}
@@ -93,6 +93,12 @@ top25ag <- ddply(top25agencies, "agency_name", numcolwise(sum))
 ```
 
 ```{r}
+top25stat
+```
+
+
+
+```{r}
 top25ag <- top25ag %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
   mutate(total_share = total_for_rp/sum(total_for_rp)) %>%
@@ -131,7 +137,7 @@ top25totalmelted <- top25agencies %>%
   mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
   select(agency_name, carry_over, abandonment, fiscal_year) %>%
   reshape2::melt(id = c("agency_name", "fiscal_year"))
-top25totalmelted
+
 
 top25totalmelted$agency_name[top25totalmelted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
 
@@ -146,7 +152,7 @@ top25totalmelted %>%
        y = "",
        title = "Carry Over and Abandonment",
        subtitle = "Top 25 agencies, 2015-2019") +
-  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
 
 ggplot(data = top25totalmelted, aes(x = value, y = reorder(agency_name, +value), label = fiscal_year)) +
   geom_line(alpha = 0.5, color = "grey") +
@@ -162,6 +168,8 @@ ggplot(data = top25totalmelted, aes(x = value, y = reorder(agency_name, +value),
        title = "Carry Over and Abandonment",
        subtitle = "Top 25 agencies, 2015-2018 (  ) 2018-2019 (  )") 
   #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+
+
   
 ```
 
@@ -216,7 +224,7 @@ top25melted <- top25ag %>%
          variable == "s20_rate")
 top25melted
 
-top25melted$agency_name[top25melted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
+top25melted$agency_name[top25melted$agency_name == "INAC_CIRNAC_ISC"] <- "Indigenous Affairs and Northern Development"
 
 top25melted %>%
   mutate(pal = ifelse(value >= 0 & value <.25, "<25%",
@@ -233,7 +241,7 @@ top25melted %>%
        y = "",
        title = "Exemptions",
        subtitle = "Top 25 agencies, 2015-2019") 
-  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/exceptions.pdf", width = 10, height = 6)
+  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
 ```
 
 
@@ -266,6 +274,21 @@ top25sector %>%
        subtitle = "Top 25 agencies, 2015-2019") 
     #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/sectors.pdf", width = 8, height = 5)
   
+```
+
+```{r}
+sect.prop <- top25ag %>% 
+  select(media, academia, business, organization, public, declined_to_identify, received_in_rp)
+
+media_prop <- sum(sect.prop$media)/ sum(sect.prop$received_in_rp)
+ac_prop <- sum(sect.prop$academia)/ sum(sect.prop$received_in_rp)
+pub_prop <- sum(sect.prop$public)/ sum(sect.prop$received_in_rp)
+biz_prop <- sum(sect.prop$business)/ sum(sect.prop$received_in_rp)
+org_prop <- sum(sect.prop$organization)/ sum(sect.prop$received_in_rp)
+dec_prop <- sum(sect.prop$declined_to_identify)/ sum(sect.prop$received_in_rp)
+
+list( media = media_prop, academic = ac_prop, public = pub_prop, business = biz_prop, organizations = org_prop, decline = dec_prop)
+
 ```
 
 

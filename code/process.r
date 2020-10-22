@@ -44,6 +44,8 @@ data_full_subset <- subset(data_full, select = c("X1",
                                                  "X10",
                                                  "X11",
                                                  "X12",
+                                                 "X30",
+                                                 "X39",
                                                  "X91",
                                                  "X94",
                                                  "X95",
@@ -87,7 +89,8 @@ data_full_subset <- subset(data_full, select = c("X1",
                                                  "X736"
                                                  ))
 
-data_full_subset <- rename(data_full_subset, c("X1" = "agency_name",
+data_full_subset <- rename(data_full_subset, 
+                           c("X1" = "agency_name",
                                  "X2" = "received_in_rp",
                                  "X3" = "outstanding_from_prev_rp",
                                  "X4" = "total_for_rp",
@@ -99,6 +102,8 @@ data_full_subset <- rename(data_full_subset, c("X1" = "agency_name",
                                  "X10" = "organization",
                                  "X11" = "public",
                                  "X12" = "declined_to_identify",
+                                 "X30" = "total_1.15",
+                                 "X39" = "total_16.30",
                                  "X91" = "abandoned_in_rp",
                                  "X94" = "13_1_a",
                                  "X95" = "13_1_b",
@@ -184,6 +189,9 @@ data_full_subset$s20exemp <- rowSums(cbind(data_full_subset["20_1a"],
                                            data_full_subset["20_2_"], 
                                            data_full_subset["20_4_"]))
 
+data_full_subset$statutorytimeline <- rowSums(cbind(data_full_subset["total 1-15"],
+                                                    data_full_subset["total 16-30"]))
+
 data_full_subset2 <- data_full_subset %>%
   select("agency_name",
          "received_in_rp",
@@ -206,5 +214,5 @@ data_full_subset2 <- data_full_subset %>%
          "people_years",
          "total_costs")
 
-write_csv(data_full_subset2, "data/processed/full_data_subset2_2015_2019.csv")s
+write_csv(data_full_subset2, "data/processed/full_data_subset2_2015_2019.csv")
 
