@@ -92,13 +92,12 @@ v2/v1*100
 ```{r}
 #aggregate values across years
 top25ag <- ddply(top25agencies, "agency_name", numcolwise(sum))
+top25ag
 ```
 
 ```{r}
 top25stat
 ```
-
-
 
 ```{r}
 top25ag <- top25ag %>%
@@ -132,7 +131,7 @@ top25ag %>%
 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #plot inefficiency, abandonment, processing time together
 top25totalmelted <- top25agencies %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
@@ -140,6 +139,15 @@ top25totalmelted <- top25agencies %>%
   mutate(process_time = statutorytimeline/closed_in_rp) %>%
   select(agency_name, carry_over, abandonment, process_time, fiscal_year) %>%
   reshape2::melt(id = c("agency_name", "fiscal_year"))
+
+top25agencies %>%
+  group_by(agency_name) %>%
+  select(!fiscal_year) %>%
+  summarize_all(funs(sum)) %>%
+  mutate(carry_over = carried_over_to_rp/closed_in_rp*100) %>%
+  mutate(abandonment = abandoned_in_rp/closed_in_rp*100) %>%
+  mutate(process_time = statutorytimeline/closed_in_rp*100) %>%
+  select(agency_name, carry_over, abandonment, process_time)
 
 top25totalmelted$agency_name[top25totalmelted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
 
@@ -157,28 +165,13 @@ top25totalmelted %>%
   #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
   ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
 
-ggplot(data = top25totalmelted, aes(x = value, y = reorder(agency_name, +value), label = fiscal_year)) +
-  geom_line(alpha = 0.5, color = "grey") +
-  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2017-2018"), color = "grey", alpha = 0.8, size = 1) +
-  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2016-2017"), color = "grey", alpha = 0.8, size = 1) +
-  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2015-2016"), color = "grey", alpha = 0.8, size = 1) +
-  geom_point(data = subset(top25totalmelted, fiscal_year %in% "2018-2019"), color = "black", alpha = 0.8, size = 2) +
-  scale_x_continuous(labels = scales::percent) +
-  facet_wrap(~variable, scales = "free_x") +
-  theme_minimal() +
-  labs(x = "", 
-       y = "",
-       title = "Carry Over and Abandonment",
-       subtitle = "Top 25 agencies, 2015-2018 (  ) 2018-2019 (  )") 
-  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/effic_aband.pdf", width = 8, height = 5) 
-
 
   
 ```
 
 
 
-```{r, fig.width=12, fig.height=8}
+```{r fig.height=8, fig.width=12, message=FALSE, warning=FALSE}
 #calculate rates of exemption
 top25ag <- top25ag %>%
   mutate(s13_rate = s13exemp/closed_in_rp) %>%
@@ -243,12 +236,13 @@ top25melted %>%
   labs(x = "", 
        y = "",
        title = "Exemptions",
-       subtitle = "Top 25 agencies, 2015-2019") 
-  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
+       subtitle = "Top 25 agencies, 2015-2019") +
+  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/exceptions.pdf", width = 10, height = 6)
 ```
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 top25sector <- top25ag %>%
   mutate(media = media/received_in_rp) %>%
   mutate(academia = academia/received_in_rp) %>%
