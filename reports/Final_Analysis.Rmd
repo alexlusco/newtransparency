@@ -20,7 +20,9 @@ library(forcats)
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 #load in data
-data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
+#data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
+
+data_full <- read_csv("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
 ```
 
 ```{r include=FALSE}
@@ -131,13 +133,13 @@ top25ag %>%
 ```
 
 ```{r}
-#plot inefficiency and abandonment together
+#plot inefficiency, abandonment, processing time together
 top25totalmelted <- top25agencies %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
   mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
-  select(agency_name, carry_over, abandonment, fiscal_year) %>%
+  mutate(process_time = statutorytimeline/closed_in_rp) %>%
+  select(agency_name, carry_over, abandonment, process_time, fiscal_year) %>%
   reshape2::melt(id = c("agency_name", "fiscal_year"))
-
 
 top25totalmelted$agency_name[top25totalmelted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
 
@@ -152,7 +154,8 @@ top25totalmelted %>%
        y = "",
        title = "Carry Over and Abandonment",
        subtitle = "Top 25 agencies, 2015-2019") +
-  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
 
 ggplot(data = top25totalmelted, aes(x = value, y = reorder(agency_name, +value), label = fiscal_year)) +
   geom_line(alpha = 0.5, color = "grey") +
