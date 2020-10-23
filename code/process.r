@@ -189,13 +189,14 @@ data_full_subset$s20exemp <- rowSums(cbind(data_full_subset["20_1a"],
                                            data_full_subset["20_2_"], 
                                            data_full_subset["20_4_"]))
 
-data_full_subset$statutorytimeline <- rowSums(cbind(data_full_subset["total 1-15"],
-                                                    data_full_subset["total 16-30"]))
+data_full_subset$statutorytimeline <- rowSums(cbind(data_full_subset["total_1.15"],
+                                                    data_full_subset["total_16.30"]))
 
 data_full_subset2 <- data_full_subset %>%
   select("agency_name",
          "received_in_rp",
          "outstanding_from_prev_rp",
+         "statutorytimeline",
          "total_for_rp",
          "closed_in_rp",
          "carried_over_to_rp",
