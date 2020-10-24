@@ -22,7 +22,7 @@ library(forcats)
 #load in data
 #data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
 
-data_full <- read_csv("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
+data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
 ```
 
 ```{r include=FALSE}
@@ -96,7 +96,7 @@ top25ag
 ```
 
 ```{r}
-top25stat
+##top25stat
 ```
 
 ```{r}
@@ -140,7 +140,7 @@ top25totalmelted <- top25agencies %>%
   select(agency_name, carry_over, abandonment, process_time, fiscal_year) %>%
   reshape2::melt(id = c("agency_name", "fiscal_year"))
 
-top25agencies %>%
+top25agencies2 <- top25agencies %>%
   group_by(agency_name) %>%
   select(!fiscal_year) %>%
   summarize_all(funs(sum)) %>%
@@ -162,13 +162,17 @@ top25totalmelted %>%
        y = "",
        title = "Carry Over and Abandonment",
        subtitle = "Top 25 agencies, 2015-2019") +
-  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
-  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
+  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
 
 
   
 ```
 
+```{r}
+timeline <- top25agencies2 %>% 
+  select(agency_name, process_time)
+```
 
 
 ```{r fig.height=8, fig.width=12, message=FALSE, warning=FALSE}
@@ -237,8 +241,8 @@ top25melted %>%
        y = "",
        title = "Exemptions",
        subtitle = "Top 25 agencies, 2015-2019") +
-  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
-  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/exceptions.pdf", width = 10, height = 6)
+  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
+  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/exceptions.pdf", width = 10, height = 6)
 ```
 
 
