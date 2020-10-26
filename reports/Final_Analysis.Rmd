@@ -16,6 +16,7 @@ library(ggplot2)
 library(ggrepel)
 library(flextable)
 library(forcats)
+library(scales)
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -96,6 +97,24 @@ top25ag
 ```
 
 ```{r}
+top25agencies %>%
+  group_by(fiscal_year) %>%
+  summarize(total = sum(carried_over_to_rp)) %>%
+  ggplot(aes(x = fiscal_year, y = total, label = comma(total))) +
+  geom_col(width = 0.75) +
+  geom_label() +
+  theme_minimal() +
+  scale_y_continuous(breaks = c(0, 5000, 10000, 15000, 20000, 25000)) +
+  labs(x = "", 
+       y = "Total requests carried over",
+       title = "Total requests carried over from previous reporting year",
+       subtitle = "Top 25 agencies, 2015-2019") +
+  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/carry_over_total.pdf", width = 8, height = 5) 
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/carry_over_total.pdf", width = 8, height = 5)
+```
+
+
+```{r}
 top25ag <- top25ag %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
   mutate(total_share = total_for_rp/sum(total_for_rp)) %>%
@@ -133,7 +152,7 @@ top25totalmelted <- top25agencies %>%
   mutate(`carry over` = carried_over_to_rp/closed_in_rp) %>%
   mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
   mutate(`statutory timeline \nexceeded` = (closed_in_rp - statutorytimeline)/closed_in_rp) %>%
-  select(agency_name, `carry over`, abandonment, `statutory timeline \nexceeded`, fiscal_year) %>%
+  select(agency_name, `statutory timeline \nexceeded`, `carry over`, abandonment, fiscal_year) %>%
   reshape2::melt(id = c("agency_name", "fiscal_year"))
 
 top25agencies2 <- top25agencies %>%
@@ -142,8 +161,13 @@ top25agencies2 <- top25agencies %>%
   summarize_all(funs(sum)) %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp*100) %>%
   mutate(abandonment = abandoned_in_rp/closed_in_rp*100) %>%
-  mutate(process_time = statutorytimeline/closed_in_rp*100) %>%
+  mutate(process_time = (closed_in_rp - statutorytimeline)/closed_in_rp*100) %>%
   select(agency_name, carry_over, abandonment, process_time)
+
+#mean and sd of timeline, carry over, abandonment
+top25agencies2 %>%
+  select(carry_over, abandonment, process_time) %>%
+  summarize_each(funs(mean, sd))
 
 top25totalmelted$agency_name[top25totalmelted$agency_name == "INAC_CIRNAC_ISC"] <- "Indian Affairs and Northern Development"
 
@@ -156,10 +180,10 @@ top25totalmelted %>%
   theme_minimal() +
   labs(x = "", 
        y = "",
-       title = "Carry Over, Abandonment, and Statutory Timeline \nExceeded",
+       title = "Exceeding Statutory Timeline, Carry Over, and \nAbandonment",
        subtitle = "Top 25 agencies, 2015-2019") +
-  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
-  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
+  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/timeline_effic_aband.pdf", width = 8, height = 5) 
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/timeline_effic_aband.pdf", width = 8, height = 5)
 ```
 
 ```{r}
@@ -232,8 +256,8 @@ top25melted %>%
   theme_minimal() +
   theme(legend.position = "top", legend.title = element_blank()) +
   scale_x_continuous(labels = scales::percent) +
-  scale_color_viridis_d() +
-  #scale_color_grey(start = 0.75, end = 0.0) +
+  #scale_color_viridis_d() +
+  scale_color_grey(start = .7, end = 0.0) +
   labs(x = "", 
        y = "",
        title = "Exemptions",
@@ -280,7 +304,7 @@ top25sector %>%
        y = "",
        title = "Total share of requests by sector",
        subtitle = "Top 25 agencies, 2015-2019") 
-    #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/GIQ_New_Transparency/Figures/sectors.pdf", width = 8, height = 5)
+  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/sectors.pdf", width = 8, height = 5)
   
 ```
 
@@ -302,20 +326,89 @@ list( media = media_prop, academic = ac_prop, public = pub_prop, business = biz_
 ```{r}
 #construct correlation matrix between carry over, abandonment, statutory timeline
 library(rstatix)
+library(ggcorrplot)
 
-cordata <- top25ag %>%
+cordata1 <- top25ag %>%
   select(carried_over_to_rp, abandoned_in_rp, closed_in_rp, statutorytimeline) %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
   mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
   mutate(statutory_timeline = (closed_in_rp - statutorytimeline)/closed_in_rp) %>%
   select(carry_over, abandonment, statutory_timeline)
 
-cordata %>%
+cordata1 %>%
   cor_mat()
 
-cordata %>%
+cordata1 %>%
   cor_mat() %>%
   cor_get_pval()
+
+cordata2 <- top25ag %>%
+  mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
+  mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
+  mutate(statutory_timeline = (closed_in_rp - statutorytimeline)/closed_in_rp) %>%
+  mutate(s13and15_rate = (s13_rate + s15_rate)/2) %>%
+  select(carry_over, abandonment, statutory_timeline, s16_rate, s20_rate, s13and15_rate, people_years, total_costs, total_share)
+
+cordata2 %>%
+  cor_mat()
+
+cordata2 %>%
+  cor_mat() %>%
+  cor_get_pval()
+
+corr <- round(cor(cordata2), 1)
+
+melted_cormat <- reshape2::melt(corr)
+
+# Reorder the correlation matrix
+reorder_cormat <- function(cormat){
+# Use correlation between variables as distance
+dd <- as.dist((1-cormat)/2)
+hc <- hclust(dd)
+cormat <-cormat[hc$order, hc$order]
+}
+# Get lower triangle of the correlation matrix
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+  
+cormat <- reorder_cormat(corr)
+upper_tri <- get_upper_tri(corr)
+# Melt the correlation matrix
+melted_cormat <- reshape2::melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- melted_cormat %>%
+  ggplot(aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  theme_minimal()+ # minimal theme
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+  coord_fixed() +
+  scale_fill_viridis_c(name="Pearson\nCorrelation")
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5)) +
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/cormatrix.pdf", width = 8, height = 5)
+  
+
 ```
 
 
