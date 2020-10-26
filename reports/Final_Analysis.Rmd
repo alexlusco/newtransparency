@@ -20,9 +20,9 @@ library(forcats)
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 #load in data
-#data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
+data_full <- read_csv("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
 
-data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
+#data_full <- read_csv("/Users/jamied/Documents/GitHub/newtransparency/data/processed/full_data_subset2_2015_2019.csv")
 ```
 
 ```{r include=FALSE}
@@ -96,10 +96,6 @@ top25ag
 ```
 
 ```{r}
-##top25stat
-```
-
-```{r}
 top25ag <- top25ag %>%
   mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
   mutate(total_share = total_for_rp/sum(total_for_rp)) %>%
@@ -134,10 +130,10 @@ top25ag %>%
 ```{r message=FALSE, warning=FALSE}
 #plot inefficiency, abandonment, processing time together
 top25totalmelted <- top25agencies %>%
-  mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
+  mutate(`carry over` = carried_over_to_rp/closed_in_rp) %>%
   mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
-  mutate(process_time = statutorytimeline/closed_in_rp) %>%
-  select(agency_name, carry_over, abandonment, process_time, fiscal_year) %>%
+  mutate(`statutory timeline \nexceeded` = (closed_in_rp - statutorytimeline)/closed_in_rp) %>%
+  select(agency_name, `carry over`, abandonment, `statutory timeline \nexceeded`, fiscal_year) %>%
   reshape2::melt(id = c("agency_name", "fiscal_year"))
 
 top25agencies2 <- top25agencies %>%
@@ -160,13 +156,10 @@ top25totalmelted %>%
   theme_minimal() +
   labs(x = "", 
        y = "",
-       title = "Carry Over and Abandonment",
+       title = "Carry Over, Abandonment, and Statutory Timeline \nExceeded",
        subtitle = "Top 25 agencies, 2015-2019") +
-  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
-  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
-
-
-  
+  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/effic_aband.pdf", width = 8, height = 5) 
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/effic_aband.pdf", width = 8, height = 5)
 ```
 
 ```{r}
@@ -218,10 +211,13 @@ total_exempt_rates
 top25melted <- top25ag %>%
   mutate(s13and15 = s13exemp + s15exemp) %>%
   mutate(s13and15_rate = s13and15/closed_in_rp) %>%
+  #mutate(glomar_response = neither_confirm_nor_deny/closed_in_rp) %>%
   reshape2::melt(id = c("agency_name")) %>%
   filter(variable == "s13and15_rate"|
          variable == "s16_rate"|
-         variable == "s20_rate")
+         variable == "s20_rate"
+         #variable == "glomar_response"
+         )
 top25melted
 
 top25melted$agency_name[top25melted$agency_name == "INAC_CIRNAC_ISC"] <- "Indigenous Affairs and Northern Development"
@@ -229,9 +225,10 @@ top25melted$agency_name[top25melted$agency_name == "INAC_CIRNAC_ISC"] <- "Indige
 top25melted %>%
   mutate(pal = ifelse(value >= 0 & value <.25, "<25%",
                             ifelse(value > .25 & value <= .5, "25%-50%", ">50%"))) %>%
-  ggplot(aes(x = as.numeric(value), y = agency_name, shape = factor(pal, levels = c("<25%", "25%-50%", ">50%")), color = factor(pal, levels = c("<25%", "25%-50%", ">50%")))) +
+  #ggplot(aes(x = as.numeric(value), y = agency_name, shape = factor(pal, levels = c("<25%", "25%-50%", ">50%")), color = factor(pal, levels = c("<25%", "25%-50%", ">50%")))) +
+  ggplot(aes(x = as.numeric(value), y = agency_name, color = factor(pal, levels = c("<25%", "25%-50%", ">50%")))) +
   geom_point(size = 4, alpha = 0.8) +
-  facet_wrap(~variable) +
+  facet_wrap(~variable, ncol = 4) +
   theme_minimal() +
   theme(legend.position = "top", legend.title = element_blank()) +
   scale_x_continuous(labels = scales::percent) +
@@ -241,9 +238,19 @@ top25melted %>%
        y = "",
        title = "Exemptions",
        subtitle = "Top 25 agencies, 2015-2019") +
-  ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
-  #ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/exceptions.pdf", width = 10, height = 6)
+  #ggsave("/Users/jamied/Documents/GitHub/newtransparency/Figures/exceptions.pdf", width = 10, height = 6)
+  ggsave("/Users/alexluscombe/Dropbox/Git_Repos/newtransparency/figures/exceptions.pdf", width = 10, height = 6)
 ```
+
+```{r}
+#can neither confirm nor deny
+top25ag %>%
+  select(agency_name, closed_in_rp, neither_confirm_nor_deny) %>%
+  mutate(glomar = neither_confirm_nor_deny/closed_in_rp*100) %>%
+  select(agency_name, glomar) %>%
+  arrange(desc(glomar))
+```
+
 
 
 ```{r message=FALSE, warning=FALSE}
@@ -292,6 +299,24 @@ list( media = media_prop, academic = ac_prop, public = pub_prop, business = biz_
 
 ```
 
+```{r}
+#construct correlation matrix between carry over, abandonment, statutory timeline
+library(rstatix)
+
+cordata <- top25ag %>%
+  select(carried_over_to_rp, abandoned_in_rp, closed_in_rp, statutorytimeline) %>%
+  mutate(carry_over = carried_over_to_rp/closed_in_rp) %>%
+  mutate(abandonment = abandoned_in_rp/closed_in_rp) %>%
+  mutate(statutory_timeline = (closed_in_rp - statutorytimeline)/closed_in_rp) %>%
+  select(carry_over, abandonment, statutory_timeline)
+
+cordata %>%
+  cor_mat()
+
+cordata %>%
+  cor_mat() %>%
+  cor_get_pval()
+```
 
 
 ```{r, fig.width=12, fig.height=8}
